@@ -182,3 +182,63 @@ def test_put_request_using_random_id(client, valid_post_request):
     fetched_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
     fetched_record_json = fetched_record.get_json()
     assert_that(fetched_record_json).is_equal_to(created_record_json)
+
+def test_patch_request_using_valid_values(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    patch_request = {"method": "PATCH"}
+    patch_response = client.patch(f'/__admin__/request/{created_record_json["id"]}', json=patch_request)
+    assert_that(patch_response.status_code).is_equal_to(200)
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_not_equal_to(created_record_json)
+    assert_that(updated_record_json["method"]).is_equal_to(patch_request["method"])
+
+def test_patch_request_using_multiple_valid_fields(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    patch_request = {"method": "PATCH", "request_body": {"PATCH": "Hello I'm Patch"}}
+    patch_response = client.patch(f'/__admin__/request/{created_record_json["id"]}', json=patch_request)
+    assert_that(patch_response.status_code).is_equal_to(200)
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_not_equal_to(created_record_json)
+    assert_that(updated_record_json["method"]).is_equal_to(patch_request["method"])
+    assert_that(updated_record_json["request_body"]).is_equal_to(patch_request["request_body"])
+
+def test_patch_request_using_multiple_invalid_fields(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    patch_request = {"methodx": "PATCH", "request_bodyx": {"PATCH": "Hello I'm Patch"}}
+    patch_response = client.patch(f'/__admin__/request/{created_record_json["id"]}', json=patch_request)
+    assert_that(patch_response.status_code).is_equal_to(400)
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_equal_to(created_record_json)
+
+def test_patch_request_using_empty_request_body(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    patch_response = client.patch(f'/__admin__/request/{created_record_json["id"]}', json={})
+    assert_that(patch_response.status_code).is_equal_to(204)
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_equal_to(created_record_json)
+
+def test_delete_requests_removes_item_in_storage(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    delete_response = client.delete(f'/__admin__/request/{created_record_json["id"]}')
+    assert_that(delete_response.status_code).is_equal_to(200)
+    get_response = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    assert_that(get_response.status_code).is_equal_to(404)
+
+def test_delete_requests_removes_item_in_storage_using_non_existing_id(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    delete_response = client.delete(f'/__admin__/request/{str(uuid4())}')
+    assert_that(delete_response.status_code).is_equal_to(200)
+    get_response = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    get_response_json = get_response.get_json()
+    assert_that(get_response.status_code).is_equal_to(200)
+    assert_that(get_response_json).is_equal_to(created_record_json)
