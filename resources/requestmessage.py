@@ -36,7 +36,7 @@ class RequestMessage(Resource):
             result['id'] = id
             result['created_at'] = created_at
             data_store[id] = result
-            return result, 200
+            return result, 201
         except ValidationError as err:
             return err.messages, 400
 
