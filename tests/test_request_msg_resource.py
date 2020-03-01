@@ -31,14 +31,14 @@ def test_successful_post_request(client):
     assert_that(json_response['request_body']).is_equal_to(req_body['request_body'])
     assert_that(json_response['uri_path']).is_equal_to(req_body['uri_path'])
     assert_that(json_response['request_headers']).is_equal_to(req_body['request_headers'])
+    assert_that(json_response['created_at']).is_not_empty()
 
 
-def test_error_if_method_field_is_missing_in_request_body(client):
+def test_error_if_required_fields_are_missing_in_request_body(client):
     req_body = {
         "request_body": {
             "this": "is",
         },
-        "uri_path": "/i/am/the/pogi",
         "request_headers": {
             "this": "is",
         }
@@ -48,3 +48,36 @@ def test_error_if_method_field_is_missing_in_request_body(client):
     json_response = response.get_json()
     assert_that(response.status_code).is_equal_to(400)
     assert_that(json_response['method'][0]).is_equal_to('Missing data for required field.')
+    assert_that(json_response['uri_path'][0]).is_equal_to('Missing data for required field.')
+
+def test_successful_post_request_if_required_fields_are_only_present(client):
+    req_body = {
+        "method": "GET",
+        "uri_path": "/i/am/the/pogi"
+    }
+
+    response = client.post('/__admin__/request', json=req_body)
+    json_response = response.get_json()
+    assert_that(response.status_code).is_equal_to(200)
+    assert_that(json_response['id']).is_not_empty()
+    assert_that(json_response['method']).is_equal_to(req_body['method'])
+    assert_that(json_response['uri_path']).is_equal_to(req_body['uri_path'])
+    assert_that(json_response['created_at']).is_not_empty()
+    assert_that(json_response).does_not_contain_key('request_body')
+    assert_that(json_response).does_not_contain_key('request_headers')
+
+def test_error_if_uri_path_is_invalid(client):
+    req_body = {
+        "method": "GET",
+        "request_body": {
+            "Test": "Lorem Ipsum Dolor"
+        },
+        "uri_path": "/i/am/the/pogi",
+        "request_headers": {
+            "Content-Type": "application/json"
+        }
+
+    }
+
+    response = client.post('/__admin__/requestxxx', json=req_body)
+    assert_that(response.status_code).is_equal_to(404)
