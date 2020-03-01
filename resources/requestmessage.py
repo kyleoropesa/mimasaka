@@ -48,7 +48,9 @@ class RequestMessage(Resource):
             result = serializer.load(content)
             if request_message:
                 data_store[id] = result
-            return result, 200
+                return result, 200
+
+            return None, 404
         except ValidationError as err:
             return err.messages, 400
 
