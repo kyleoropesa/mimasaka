@@ -36,7 +36,7 @@ class RequestMessage(Resource):
             result['id'] = id
             result['created_at'] = created_at
             data_store[id] = result
-            return result, 200
+            return result, 201
         except ValidationError as err:
             return err.messages, 400
 
@@ -48,12 +48,14 @@ class RequestMessage(Resource):
             result = serializer.load(content)
             if request_message:
                 data_store[id] = result
-            return result, 200
+                return result, 200
+
+            return None, 404
         except ValidationError as err:
             return err.messages, 400
 
     def delete(self, id):
-        data_store.pop(id)
+        data_store.pop(id, None)
         return {}, 200
 
     def patch(self, id):
@@ -63,6 +65,9 @@ class RequestMessage(Resource):
         if request_message:
             try:
                 result = deserializer.load(content)
+                if len(result) == 0:
+                    return {"INFO": "No Operation Needed"}, 204
+
                 for keys in result.keys():
                     request_message[keys] = result[keys]
                 data_store[id] = request_message
