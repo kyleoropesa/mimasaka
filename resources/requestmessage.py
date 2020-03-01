@@ -55,7 +55,7 @@ class RequestMessage(Resource):
             return err.messages, 400
 
     def delete(self, id):
-        data_store.pop(id)
+        data_store.pop(id, None)
         return {}, 200
 
     def patch(self, id):
@@ -65,6 +65,9 @@ class RequestMessage(Resource):
         if request_message:
             try:
                 result = deserializer.load(content)
+                if len(result) == 0:
+                    return {"INFO": "No Operation Needed"}, 204
+
                 for keys in result.keys():
                     request_message[keys] = result[keys]
                 data_store[id] = request_message
