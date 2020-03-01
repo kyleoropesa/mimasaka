@@ -25,6 +25,7 @@ def valid_post_request():
     }
 
 
+
 def test_post_request_valid_values(client):
     req_body = {
         "method": "GET",
@@ -127,3 +128,57 @@ def test_get_record_using_non_existing_record_id(client):
     fetched_record = client.get(f'/__admin__/request/{str(uuid4())}', json={})
     assert_that(fetched_record.status_code).is_equal_to(404)
 
+def test_put_request_using_valid_values(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    put_request = valid_post_request
+    put_request['method'] = 'PUT'
+    put_request['request_body'] = {"Tested": "One Punch!!!!!!"}
+    put_response = client.put(f'/__admin__/request/{created_record_json["id"]}', json=put_request)
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(put_response.status_code).is_equal_to(200)
+    assert_that(created_record_json).is_not_equal_to(updated_record_json)
+    assert_that(updated_record_json['method']).is_equal_to('PUT')
+    assert_that(updated_record_json['request_body']).is_equal_to({"Tested": "One Punch!!!!!!"})
+
+def test_put_request_but_required_fields_are_missing(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    put_request = valid_post_request
+    put_request.pop("method")
+    put_request.pop("uri_path")
+    put_response = client.put(f'/__admin__/request/{created_record_json["id"]}', json=put_request)
+    put_response_json = put_response.get_json()
+    assert_that(put_response.status_code).is_equal_to(400)
+    assert_that(put_response_json['uri_path'][0]).is_equal_to("Missing data for required field.")
+    assert_that(put_response_json['method'][0]).is_equal_to("Missing data for required field.")
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_equal_to(created_record_json)
+
+def test_put_request_but_required_fields_only(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    put_request = valid_post_request
+    put_request.pop("request_body")
+    put_request.pop("request_headers")
+    put_response = client.put(f'/__admin__/request/{created_record_json["id"]}', json=put_request)
+    assert_that(put_response.status_code).is_equal_to(200)
+
+    updated_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    updated_record_json = updated_record.get_json()
+    assert_that(updated_record_json).is_equal_to(put_request)
+
+def test_put_request_using_random_id(client, valid_post_request):
+    created_record = client.post('/__admin__/request', json=valid_post_request)
+    created_record_json = created_record.get_json()
+    put_request = valid_post_request
+    put_request.pop("request_body")
+    put_request.pop("request_headers")
+    put_response = client.put(f'/__admin__/request/{str(uuid4())}', json=put_request)
+    assert_that(put_response.status_code).is_equal_to(404)
+
+    fetched_record = client.get(f'/__admin__/request/{created_record_json["id"]}')
+    fetched_record_json = fetched_record.get_json()
+    assert_that(fetched_record_json).is_equal_to(created_record_json)
